@@ -6,10 +6,11 @@ CREATE TABLE IF NOT EXISTS conta(
     saldo INT NOT NULL
 );
 
+DROP TABLE transacao;
 CREATE TABLE IF NOT EXISTS transacao (
     id INT AUTO_INCREMENT PRIMARY KEY,
     conta_id INT NOT NULL,
-    forma_pagamaneto ENUM('P', 'C', 'D') NOT NULL,
+    forma_pagamento ENUM('P', 'C', 'D') NOT NULL,
     valor INT NOT NULL,
     FOREIGN KEY (conta_id)
     REFERENCES conta(conta_id)
