@@ -1,31 +1,11 @@
 import "dotenv/config"
 import express from "express"
-import mysql from 'mysql'
-import nodemailer from 'nodemailer'
+import connection from "./db.js"
+import EmailService from "./emailService.js"
 
 const app = express()
 const port = 3000
 app.use(express.json())
-
-var connection = mysql.createConnection({
-  host     : process.env.DB_HOST,
-  database : process.env.DB_NAME,
-  user     : process.env.DB_USER,
-  password : process.env.DB_PASSWORD,
-  port     : process.env.DB_PORT
-});
-
-
-const transporter = nodemailer.createTransport({
-  host: "sandbox.smtp.mailtrap.io",
-  port: 587,
-  secure: false, // Use `true` for port 465, `false` for all other ports
-  auth: {
-    user: "4797f054aea228",
-    pass: "ca0004385962b6",
-  },
-});
-
 
 app.get('/conta/:id', (req, res) => {
 
@@ -57,7 +37,7 @@ app.post('/conta', (req, res) => {
       });
 })
 
-app.post('/transacao', async(req, res) => {
+app.post('/transacao', async (req, res) => {
 
     let { forma_pagamento, conta_id, valor } = req.body
 
@@ -69,7 +49,7 @@ app.post('/transacao', async(req, res) => {
         res.status(400).json({message: "Forma de pagamento inválida. (D, C, P)"})
     }
     if(valor < 0) {
-        res.status(400).json({message: "Forma de pagamento inválida. (D, C, P)"})
+        res.status(400).json({message: "Valor inválido."})
     }
 
     //calcula imposto
@@ -77,9 +57,11 @@ app.post('/transacao', async(req, res) => {
     switch (forma_pagamento) {
         case 'D':
             valor -= valor * 0.03;
+            formaPagamentoDescricao = 'Debito'
         break;
         case 'C':
             valor -= valor * 0.05;
+            formaPagamentoDescricao = 'Credito'
         break;
         default:
             valor = valor;
@@ -112,21 +94,7 @@ app.post('/transacao', async(req, res) => {
         })
     });
 
-    const info = await transporter.sendMail({
-      from: '"Maddison Foo Koch 👻" <maddison53@ethereal.email>', // sender address
-      to: "bar@example.com, baz@example.com", // list of receivers
-      subject: "Hello ✔", // Subject line
-      text: "Hello world?", // plain text body
-      html: `
-      <h2>Comprovante de pagamento</h2>
-      <b>Foi realizada uma transação</b>
-        <ul>
-          <li>Conta:${conta_id}</li>
-          <li>Valor:${valor}</li>
-          <li>forma de pagamento:${formaPagamentoDescricao}</li>
-        </ul>
-      `, // html body
-    });
+    await EmailService.sendEmail(conta_id, valor, formaPagamentoDescricao);
 })
 
 app.listen(port, () => {
